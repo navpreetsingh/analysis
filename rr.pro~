@@ -1,0 +1,4 @@
+TEMPLATE += app
+QT += gui declarative
+INCLUDEPATH += "/ChartDirector"
+SOURCES += rr.cpp
