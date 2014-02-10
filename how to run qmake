@@ -1,0 +1,3 @@
+qmake "CONFIGURE+='name_of_file'" name_of_file.pro
+make
+./name_of_file

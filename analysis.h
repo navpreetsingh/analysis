@@ -6,6 +6,7 @@
 #include<QComboBox>
 #include<QCheckBox>
 #include<iostream>
+#include <QTimer>
 #include<fstream>
 #include<math.h>
 #include<stdlib.h>
@@ -41,6 +42,9 @@ class Analysis : public QDialog
     	QDateEdit *m_EndDate;
     	QScrollBar *m_HScrollBar;
     	QLineEdit *m_TickerSymbol;
+    	QLineEdit *m_MovingAvg1;
+    	QLineEdit *m_MovingAvg2;
+    	
 		
 		double date[5000];
 		double open[5000];
@@ -67,6 +71,7 @@ class Analysis : public QDialog
 		void onHScrollBarChanged(int value);
 		void onMouseWheelChart(QWheelEvent *event);	
 		void onLineEditChanged();
+		void onLineEditMAChanged();		
 };
 
 #endif // ANALYSIS_H

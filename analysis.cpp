@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
     app.setStyleSheet("* {font-family:arial;font-size:11px}");
-    Analysis demo;
+    Analysis demo;    
     demo.show();
     return app.exec();
 }
@@ -39,17 +39,17 @@ Analysis::Analysis(QWidget *parent) :
     // Set up the GUI
     //
 
-    setFixedSize(1050, 650);
+    setFixedSize(750, 500);
     setWindowTitle("Analysis by Navpreet Singh");
 
     // The frame on the left side
     QFrame *frame = new QFrame(this);
-    frame->setGeometry(4, 4, 120, 650);
+    frame->setGeometry(4, 4, 120, 500);
     frame->setFrameShape(QFrame::StyledPanel);
     
     // Ticker Symbol
     (new QLabel("Ticker Symbol", frame))->setGeometry(4, 8, 112, 28);
-    m_TickerSymbol = new QLineEdit("ASE", frame);
+    m_TickerSymbol = new QLineEdit("AAPL", frame);
     m_TickerSymbol->setGeometry(4, 36, 112, 28);
 
     // Pointer push button
@@ -69,6 +69,16 @@ Analysis::Analysis(QWidget *parent) :
     zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     zoomOutPB->setGeometry(4, 148, 112, 28);
     zoomOutPB->setCheckable(true);
+    
+    // MOVING AVERAGE1
+    (new QLabel("Moving Average 1", frame))->setGeometry(4, 180, 112, 28);
+    m_MovingAvg1 = new QLineEdit("5", frame);
+    m_MovingAvg1->setGeometry(4, 200, 112, 28);
+    
+    // MOVING AVERAGE 2
+    (new QLabel("Moving Average 2", frame))->setGeometry(4, 230, 112, 28);
+    m_MovingAvg2 = new QLineEdit("20", frame);
+    m_MovingAvg2->setGeometry(4, 250, 112, 28);
 
     // The Pointer/Zoom In/Zoom Out buttons form a button group
     QButtonGroup *mouseUsage = new QButtonGroup(frame);
@@ -78,24 +88,27 @@ Analysis::Analysis(QWidget *parent) :
     connect(mouseUsage, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
 
     m_ChartViewer = new QChartViewer(this);
-    m_ChartViewer->setGeometry(128, 4, 900, 633);    
+    m_ChartViewer->setGeometry(128, 4, 630, 500);    
     connect(m_ChartViewer, SIGNAL(viewPortChanged()), SLOT(onViewPortChanged()));
     connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
     connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
-    connect(m_ChartViewer, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
+    drawChart(m_ChartViewer);
+    connect(m_TickerSymbol, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
+    connect(m_MovingAvg1, SIGNAL(editingFinished()), SLOT(onLineEditMAChanged()));
+    connect(m_MovingAvg2, SIGNAL(editingFinished()), SLOT(onLineEditMAChanged()));
     drawChart(m_ChartViewer);
 
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
-    m_HScrollBar->setGeometry(128, 633, 925, 17);
+    m_HScrollBar->setGeometry(128, 485, 600, 17);
     connect(m_HScrollBar, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
 
     //
     // Initialize the chart
     //
-
+	
     // Load the data
-    char symbol[100] = "/home/navpreet/major_project/Yahoo/A.csv" ;
+    char symbol[100] = "/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/AAPL.csv" ;
     read_data(symbol);   
 
     // Initialize the QChartViewer
@@ -106,6 +119,10 @@ Analysis::Analysis(QWidget *parent) :
 
     // Trigger the ViewPortChanged event to draw the chart
     m_ChartViewer->updateViewPort(true, true);
+    
+    
+
+    
 }
 
 
@@ -131,14 +148,20 @@ void Analysis::drawChart(QChartViewer *viewer)
     int noOfPoints = endIndex - startIndex + 1;
     
     
-    char symbol[100] = "/home/navpreet/major_project/Yahoo/A.csv" ;
-    read_data(symbol);   
+    char symbol[150];
+    sprintf(symbol,"/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    cout<<"symbol"<<symbol << "\n";
+     read_data(symbol);
+     
     
     // Create a FinanceChart object of width 720 pixels
-    FinanceChart *c = new FinanceChart(925);
+    FinanceChart *c = new FinanceChart(610);
     
     // Add a title to the chart
-    c->addTitle(Chart::TopCenter, m_TickerSymbol->text().toLocal8Bit().data());
+    if(data_len <= 0)
+    	c->addTitle("INVALID SYMBOL");    
+    else
+    	c->addTitle(Chart::TopCenter, m_TickerSymbol->text().toLocal8Bit().data());
 
     // Disable default legend box, as we are using dynamic legend
     c->setLegendStyle("normal", 8, Chart::Transparent, Chart::Transparent);
@@ -147,13 +170,15 @@ void Analysis::drawChart(QChartViewer *viewer)
     c->setData(DoubleArray(date + startIndex, noOfPoints), DoubleArray(high + startIndex, noOfPoints), DoubleArray(low + startIndex, noOfPoints), DoubleArray(open + startIndex, noOfPoints), DoubleArray(close + startIndex, noOfPoints), DoubleArray(volume + startIndex, noOfPoints), 30);
 
     // Add the main chart with 240 pixels in height
-    c->addMainChart(400);
+    c->addMainChart(280);
 
     // Add a 10 period simple moving average to the main chart, using brown color
-    c->addSimpleMovingAvg(10, 0x663300);
+    int a = m_MovingAvg1->text().toInt();
+    c->addSimpleMovingAvg(a, 0x663300);
 
     // Add a 20 period simple moving average to the main chart, using purple color
-    c->addSimpleMovingAvg(20, 0x9900ff);
+    int b = m_MovingAvg2->text().toInt();
+    c->addSimpleMovingAvg(b, 0x9900ff);
 
     // Add candlestick symbols to the main chart, using green/red for up/down days
     c->addCandleStick(0x00ff00, 0xff0000);
@@ -177,7 +202,7 @@ void Analysis::drawChart(QChartViewer *viewer)
 
     // Include track line with legend for the latest data values
     analysis(c, ((XYChart *)c->getChart(0))->getPlotArea()->getRightX());
-    cout << "track875: " << ((XYChart *)c->getChart(0))->getPlotArea()->getRightX();
+    //cout << "track875: " << ((XYChart *)c->getChart(0))->getPlotArea()->getRightX();
     
     
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -190,6 +215,15 @@ void Analysis::drawChart(QChartViewer *viewer)
 
 
 void Analysis::onLineEditChanged()
+{
+    char symbol[150];
+    sprintf(symbol,"/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    cout<<"symbol"<<symbol << "\n";
+    read_data(symbol);
+    drawChart(m_ChartViewer);
+}
+
+void Analysis::onLineEditMAChanged()
 {
     drawChart(m_ChartViewer);
 }
@@ -219,7 +253,7 @@ void Analysis::initChartViewer(QChartViewer *viewer)
 
 void Analysis::onViewPortChanged()
 {
-    updateControls(m_ChartViewer);
+	updateControls(m_ChartViewer);
     
     if (m_ChartViewer->needUpdateChart())
         drawChart(m_ChartViewer);
@@ -343,7 +377,7 @@ void Analysis::onMouseMovePlotArea(QMouseEvent *)
 //
 void Analysis::analysis(MultiChart *m, int mouseX)
 {
-    cout << "mouseX" << mouseX << "\n";
+    //cout << "mouseX" << mouseX << "\n";
     // Clear the current dynamic layer and get the DrawArea object to draw on it.
     DrawArea *d = m->initDynamicLayer();
 
@@ -353,9 +387,9 @@ void Analysis::analysis(MultiChart *m, int mouseX)
 	//cout << "Chart count: " << m->getChartCount() << "\n" ;
     // Get the data x-value that is nearest to the mouse
     int xValue = (int)(((XYChart *)m->getChart(0))->getNearestXValue(mouseX));//layer
-    cout << "(XYChart *)m->getChart(0): " << (XYChart *)m->getChart(0) << "\n";
-    cout << "xValue: " << xValue << "\n";
-	cout << "xValue: " << xValue << "\n";
+    //cout << "(XYChart *)m->getChart(0): " << (XYChart *)m->getChart(0) << "\n";
+    //cout << "xValue: " << xValue << "\n";
+	//cout << "xValue: " << xValue << "\n";
     // Iterate the XY charts (main price chart and indicator charts) in the FinanceChart
     XYChart *c = 0;
     for(int i = 0; i < m->getChartCount(); ++i) 
@@ -557,6 +591,7 @@ void Analysis :: read_data(char *symbol)
 	i = 0;
 	while ( getline(file, value, ',') )
 	{
+		
 		sscanf(value.c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
 		//cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
 		date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
@@ -587,7 +622,7 @@ void Analysis :: read_data(char *symbol)
 		
 		i++;	
 	}	
-	data_len = i - 1;
+	data_len = i - 1 ;
 	
 	for(i=0; i < data_len/2; i++)
 	{
@@ -621,5 +656,5 @@ void Analysis :: read_data(char *symbol)
 		volume[i] = volume[data_len - i];
 		volume[data_len - i] = d_temp;		
 	}	
-	//data_len = 130;	
+	cout<<"data len" << data_len << "\n";	
 }

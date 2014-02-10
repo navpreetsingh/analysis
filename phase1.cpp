@@ -13,7 +13,7 @@ using namespace std;
 class Symbol
 {
 	private:
-		string date[5000];
+		struct tm date[5000];
 		double open[5000];
 		double high[5000];
 		double low[5000];
@@ -41,11 +41,11 @@ main()
 	sym.read_data(symbol);
 	
 	//PHASE 2
-	sym.candlestick();
+	//sym.candlestick();
 	return 0;
 }
 
-void Symbol :: candlestick()
+/*void Symbol :: candlestick()
 {
 	int data_len = 20;
 	const char* a[data_len];
@@ -96,12 +96,13 @@ void Symbol :: candlestick()
 
     //free up resources
     delete c;	
-}	
+}	*/
 	
 void Symbol :: read_data(char *symbol)
 {
 	ifstream file (symbol);
 	string value;
+	struct tm tm1;
 	
 	//ELIMINATE FIRST ROW
 	int i;
@@ -111,10 +112,12 @@ void Symbol :: read_data(char *symbol)
 	
 	//GETTING DATA
 	i = 0;
-	while ( getline(file, date[i], ',') )
+	while ( getline(file, value, ',') )
 	{
-		//date[i] = value.c_str();
-		cout << "date: " << date[i] << '\n';
+		sscanf(value.c_str(),"%4d-%2d-%2d",&tm1[i].tm_year,&tm1.tm_mon,&tm1.tm_mday);
+		cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
+		date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
+		cout << "datee; " << date[i];
 		
 		getline(file, value, ',');
 		open[i] = atof(value.c_str());
