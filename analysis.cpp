@@ -26,14 +26,14 @@ int
 main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
-    app.setStyleSheet("* {font-family:arial;font-size:11px}");
+    //app.setStyleSheet("* {font-family:arial;font-size:11px}");
     Analysis demo;    
     demo.show();
     return app.exec();
 }
 
 Analysis::Analysis(QWidget *parent) :
-    QDialog(parent)
+    QDialog(parent, Qt::Window)
 {
     //
     // Set up the GUI
@@ -50,25 +50,25 @@ Analysis::Analysis(QWidget *parent) :
     // Ticker Symbol
     (new QLabel("Ticker Symbol", frame))->setGeometry(4, 8, 112, 28);
     m_TickerSymbol = new QLineEdit("AAPL", frame);
-    m_TickerSymbol->setGeometry(4, 36, 112, 28);
+    m_TickerSymbol->setGeometry(4, 46, 112, 28);
 
     // Pointer push button
-    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer", frame);
-    pointerPB->setGeometry(4, 100, 112, 28);
+    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");//, frame);
+    /*pointerPB->setGeometry(4, 100, 112, 28);
     pointerPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
-    pointerPB->setCheckable(true);
+    pointerPB->setCheckable(true);*/
 
     // Zoom In push button
-    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In", frame);
-    zoomInPB->setGeometry(4, 124, 112, 28);
+    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In");//, frame);
+    /*zoomInPB->setGeometry(4, 124, 112, 28);
     zoomInPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
-    zoomInPB->setCheckable(true);
+    zoomInPB->setCheckable(true);*/
 
     // Zoom Out push button
-    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out", frame);
-    zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
+    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out");//, frame);
+    /*zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     zoomOutPB->setGeometry(4, 148, 112, 28);
-    zoomOutPB->setCheckable(true);
+    zoomOutPB->setCheckable(true);*/
     
     // MOVING AVERAGE1
     (new QLabel("Moving Average 1", frame))->setGeometry(4, 180, 112, 28);
@@ -108,7 +108,7 @@ Analysis::Analysis(QWidget *parent) :
     //
 	
     // Load the data
-    char symbol[100] = "/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/AAPL.csv" ;
+    char symbol[100] = "/home/navpreet/major_project/Yahoo/AAPL.csv" ;
     read_data(symbol);   
 
     // Initialize the QChartViewer
@@ -118,11 +118,7 @@ Analysis::Analysis(QWidget *parent) :
     pointerPB->click();
 
     // Trigger the ViewPortChanged event to draw the chart
-    m_ChartViewer->updateViewPort(true, true);
-    
-    
-
-    
+    m_ChartViewer->updateViewPort(true, true);    
 }
 
 
@@ -149,7 +145,7 @@ void Analysis::drawChart(QChartViewer *viewer)
     
     
     char symbol[150];
-    sprintf(symbol,"/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    sprintf(symbol,"/home/navpreet/major_project/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
     cout<<"symbol"<<symbol << "\n";
      read_data(symbol);
      
@@ -217,7 +213,7 @@ void Analysis::drawChart(QChartViewer *viewer)
 void Analysis::onLineEditChanged()
 {
     char symbol[150];
-    sprintf(symbol,"/home/navpreet/major_project/navpreet/Python27/Lib/site-packages/QSTK/QSData/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    sprintf(symbol,"/home/navpreet/major_project/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
     cout<<"symbol"<<symbol << "\n";
     read_data(symbol);
     drawChart(m_ChartViewer);

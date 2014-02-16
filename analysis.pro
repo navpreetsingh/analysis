@@ -11,18 +11,18 @@ SOURCES += qchartviewer.cpp \
 HEADERS += qchartviewer.h \
     analysis.h
 
-INCLUDEPATH += ../ChartDirector/include
+INCLUDEPATH += include
 
 DEFINES += CHARTDIR_HIDE_OBSOLETE _CRT_SECURE_NO_WARNINGS
 
-win32:LIBS += ../ChartDirector/lib/chartdir51.lib
-win32:QMAKE_POST_LINK = copy /Y ..\\ChartDirector\\lib\\chartdir51.dll $(DESTDIR)
+win32:LIBS += /lib/chartdir51.lib
+win32:QMAKE_POST_LINK = copy /Y lib\\chartdir51.dll $(DESTDIR)
 
-macx:LIBS += -L../../lib -lchartdir
+macx:LIBS += -L/lib -lchartdir
 macx:QMAKE_POST_LINK += mkdir -p \"`dirname $(TARGET)`/../Frameworks\";
-macx:QMAKE_POST_LINK += cp ../ChartDirector/lib/libchartdir.5.dylib \"`dirname $(TARGET)`/../Frameworks\";
+macx:QMAKE_POST_LINK += cp lib/libchartdir.5.dylib \"`dirname $(TARGET)`/../Frameworks\";
 macx:QMAKE_POST_LINK += install_name_tool -change libchartdir.5.dylib \
      \@loader_path/../Frameworks/libchartdir.5.dylib \"$(TARGET)\";
 
-unix:!macx:LIBS += -L../ChartDirector/lib -lchartdir
-unix:!macx:QMAKE_RPATHDIR += ../ChartDirector/lib
+unix:!macx:LIBS += -L lib -lchartdir
+unix:!macx:QMAKE_RPATHDIR += lib

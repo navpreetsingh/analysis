@@ -26,49 +26,59 @@ int
 main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
-    app.setStyleSheet("* {font-family:arial;font-size:11px}");
-    Analysis demo;
+    //app.setStyleSheet("* {font-family:arial;font-size:11px}");
+    Analysis demo;    
     demo.show();
     return app.exec();
 }
 
 Analysis::Analysis(QWidget *parent) :
-    QDialog(parent)
+    QDialog(parent, Qt::Window)
 {
     //
     // Set up the GUI
     //
 
-    setFixedSize(1050, 650);
+    setFixedSize(750, 500);
     setWindowTitle("Analysis by Navpreet Singh");
 
     // The frame on the left side
     QFrame *frame = new QFrame(this);
-    frame->setGeometry(4, 4, 120, 650);
+    frame->setGeometry(4, 4, 120, 500);
     frame->setFrameShape(QFrame::StyledPanel);
     
     // Ticker Symbol
     (new QLabel("Ticker Symbol", frame))->setGeometry(4, 8, 112, 28);
-    m_TickerSymbol = new QLineEdit("ASE", frame);
-    m_TickerSymbol->setGeometry(4, 36, 112, 28);
+    m_TickerSymbol = new QLineEdit("AAPL", frame);
+    m_TickerSymbol->setGeometry(4, 46, 112, 28);
 
     // Pointer push button
-    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer", frame);
-    pointerPB->setGeometry(4, 100, 112, 28);
+    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");//, frame);
+    /*pointerPB->setGeometry(4, 100, 112, 28);
     pointerPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
-    pointerPB->setCheckable(true);
+    pointerPB->setCheckable(true);*/
 
     // Zoom In push button
-    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In", frame);
-    zoomInPB->setGeometry(4, 124, 112, 28);
+    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In");//, frame);
+    /*zoomInPB->setGeometry(4, 124, 112, 28);
     zoomInPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
-    zoomInPB->setCheckable(true);
+    zoomInPB->setCheckable(true);*/
 
     // Zoom Out push button
-    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out", frame);
-    zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
+    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out");//, frame);
+    /*zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     zoomOutPB->setGeometry(4, 148, 112, 28);
-    zoomOutPB->setCheckable(true);
+    zoomOutPB->setCheckable(true);*/
+    
+    // MOVING AVERAGE1
+    (new QLabel("Moving Average 1", frame))->setGeometry(4, 180, 112, 28);
+    m_MovingAvg1 = new QLineEdit("5", frame);
+    m_MovingAvg1->setGeometry(4, 200, 112, 28);
+    
+    // MOVING AVERAGE 2
+    (new QLabel("Moving Average 2", frame))->setGeometry(4, 230, 112, 28);
+    m_MovingAvg2 = new QLineEdit("20", frame);
+    m_MovingAvg2->setGeometry(4, 250, 112, 28);
 
     // The Pointer/Zoom In/Zoom Out buttons form a button group
     QButtonGroup *mouseUsage = new QButtonGroup(frame);
@@ -78,24 +88,27 @@ Analysis::Analysis(QWidget *parent) :
     connect(mouseUsage, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
 
     m_ChartViewer = new QChartViewer(this);
-    m_ChartViewer->setGeometry(128, 4, 900, 633);    
+    m_ChartViewer->setGeometry(128, 4, 630, 500);    
     connect(m_ChartViewer, SIGNAL(viewPortChanged()), SLOT(onViewPortChanged()));
     connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
     connect(m_ChartViewer, SIGNAL(mouseWheel(QWheelEvent*)), SLOT(onMouseWheelChart(QWheelEvent*)));
-    connect(m_ChartViewer, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
+    drawChart(m_ChartViewer);
+    connect(m_TickerSymbol, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
+    connect(m_MovingAvg1, SIGNAL(editingFinished()), SLOT(onLineEditMAChanged()));
+    connect(m_MovingAvg2, SIGNAL(editingFinished()), SLOT(onLineEditMAChanged()));
     drawChart(m_ChartViewer);
 
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
-    m_HScrollBar->setGeometry(128, 633, 925, 17);
+    m_HScrollBar->setGeometry(128, 485, 600, 17);
     connect(m_HScrollBar, SIGNAL(valueChanged(int)), SLOT(onHScrollBarChanged(int)));
 
     //
     // Initialize the chart
     //
-
+	
     // Load the data
-    char symbol[100] = "/home/navpreet/major_project/Yahoo/A.csv" ;
+    char symbol[100] = "/home/navpreet/major_project/Yahoo/AAPL.csv" ;
     read_data(symbol);   
 
     // Initialize the QChartViewer
@@ -106,6 +119,245 @@ Analysis::Analysis(QWidget *parent) :
 
     // Trigger the ViewPortChanged event to draw the chart
     m_ChartViewer->updateViewPort(true, true);
+    
+    
+    //
+    // Set up the GUI
+    //
+
+    setWindowTitle("Analysis by Navpreet Singh");
+    resize(954, 520);
+    QFont defaultFont("Arial");
+    defaultFont.setPixelSize(11);
+    setFont(defaultFont);
+    setPalette(QPalette(QColor(0xff, 0xff, 0xff)));
+
+    // Use horizontal layout to put the tree view on the left and the charts on the right
+    QHBoxLayout *horizontalLayout = new QHBoxLayout(this);
+    horizontalLayout->setMargin(0);
+    horizontalLayout->setSpacing(0);
+
+    // The frame on the left side
+    QWidget *leftPanel = new QWidget(this);
+    leftPanel->setAutoFillBackground(true);
+    leftPanel->setPalette(QPalette(QColor(186, 221, 255)));
+    leftPanel->setFixedWidth(156);
+    horizontalLayout->addWidget(leftPanel);
+
+    QFrame *separator = new QFrame(this);
+    separator->setFrameStyle(QFrame::VLine | QFrame::Plain);
+    horizontalLayout->addWidget(separator);
+
+    QWidget *rightPanel = new QWidget(this);
+    horizontalLayout->addWidget(rightPanel);
+    rightPanel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    
+    // Pointer push button
+    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer");
+    
+    // Zoom In push button
+    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In");
+    
+    // Zoom Out push button
+    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out");
+
+    // Ticker Symbol
+    (new QLabel("Ticker Symbol", leftPanel))->setGeometry(8, 10, 140, 18);
+    m_TickerSymbol = new QLineEdit("ASE", leftPanel);
+    m_TickerSymbol->setGeometry(8, 26, 140, 20);
+
+    // Compare With
+    (new QLabel("Compare With", leftPanel))->setGeometry(8, 52, 140, 18);
+    m_CompareWith = new QLineEdit(leftPanel);
+    m_CompareWith->setGeometry(8, 68, 140, 20);
+
+    // Time Period
+    (new QLabel("Time Period", leftPanel))->setGeometry(8, 94, 140, 18);
+    m_TimeRange = new QComboBox(leftPanel);
+    m_TimeRange->setGeometry(8, 110, 140, 20);
+
+    // Chart Size
+    (new QLabel("Chart Size", leftPanel))->setGeometry(8, 136, 140, 18);
+    m_ChartSize = new QComboBox(leftPanel);
+    m_ChartSize->setGeometry(8, 152, 140, 20);
+
+    // Value bars/Log Scale/Grid Lines
+    m_VolumeBars = new QCheckBox("Show Volume Bars", leftPanel);
+    m_ParabolicSAR = new QCheckBox("Parabolic SAR", leftPanel);
+    m_LogScale = new QCheckBox("Log Scale", leftPanel);
+    m_PercentageScale = new QCheckBox("Percentage Grid", leftPanel);
+    m_VolumeBars->setChecked(true);
+    m_VolumeBars->setGeometry(8, 176, 140, 20);
+    m_ParabolicSAR->setGeometry(8, 196, 140, 20);
+    m_LogScale->setGeometry(8, 216, 140, 20);
+    m_PercentageScale->setGeometry(8, 236, 140, 20);
+
+    // Chart Type
+    (new QLabel("Chart Type", leftPanel))->setGeometry(8, 262, 140, 18);
+    m_ChartType = new QComboBox(leftPanel);
+    m_ChartType->setGeometry(8, 278, 140, 20);
+
+    // Price Bands
+    (new QLabel("Price Bands", leftPanel))->setGeometry(8, 304, 140, 18);
+    m_PriceBand = new QComboBox(leftPanel);
+    m_PriceBand->setGeometry(8, 320, 140, 20);
+
+    // Moving Averages
+    (new QLabel("Moving Averages", leftPanel))->setGeometry(8, 346, 140, 18);
+    m_AvgType1 = new QComboBox(leftPanel);
+    m_AvgType2 = new QComboBox(leftPanel);
+    m_MovAvg1 = new QLineEdit("10", leftPanel);
+    m_MovAvg2 = new QLineEdit("25", leftPanel);
+    m_AvgType1->setGeometry(8, 362, 105, 20);
+    m_AvgType2->setGeometry(8, 383, 105, 20);
+    m_MovAvg1->setGeometry(113, 362, 35, 20);
+    m_MovAvg2->setGeometry(113, 383, 35, 20);
+
+    // Technical Indicators
+    (new QLabel("Technical Indicators", leftPanel))->setGeometry(8, 409, 140, 18);
+    m_Indicator1 = new QComboBox(leftPanel);
+    m_Indicator2 = new QComboBox(leftPanel);
+    m_Indicator3 = new QComboBox(leftPanel);
+    m_Indicator4 = new QComboBox(leftPanel);
+    m_Indicator1->setGeometry(8, 425, 140, 20);
+    m_Indicator2->setGeometry(8, 446, 140, 20);
+    m_Indicator3->setGeometry(8, 467, 140, 20);
+    m_Indicator4->setGeometry(8, 488, 140, 20);
+
+    QFont labelFont(defaultFont);
+    labelFont.setBold(true);
+    const QObjectList& children = leftPanel->children();
+    for (int i = 0; i < children.size(); ++i)
+    {
+        QLabel *label = qobject_cast<QLabel *>(children[i]);
+        if (0 != label)
+            label->setFont(labelFont);
+    }
+
+    // Chart Viewer
+    m_ChartViewer = new QChartViewer(rightPanel);
+    m_ChartViewer->move(8, 12);
+
+    //
+    // Fill the contents of the combo boxes
+    //
+
+    m_TimeRange->addItem("1 day", 1);
+    m_TimeRange->addItem("2 days", 2);
+    m_TimeRange->addItem("5 days", 5);
+    m_TimeRange->addItem("10 days", 10);
+    m_TimeRange->addItem("1 month", 30);
+    m_TimeRange->addItem("2 months", 60);
+    m_TimeRange->addItem("3 months", 90);
+    m_TimeRange->addItem("6 months", 180);
+    m_TimeRange->addItem("1 year", 360);
+    m_TimeRange->addItem("2 years", 720);
+    m_TimeRange->addItem("3 years", 1080);
+    m_TimeRange->addItem("4 years", 1440);
+    m_TimeRange->addItem("5 years", 1800);
+    m_TimeRange->addItem("10 years", 3600);
+    m_TimeRange->setCurrentIndex(7);
+
+    m_ChartSize->addItem("Small", "S");
+    m_ChartSize->addItem("Medium", "M");
+    m_ChartSize->addItem("Large", "L");
+    m_ChartSize->addItem("Huge", "H");
+    m_ChartSize->setCurrentIndex(2);
+
+    m_ChartType->addItem("None", "None");
+    m_ChartType->addItem("CandleStick", "CandleStick");
+    m_ChartType->addItem("Closing Price", "Close");
+    m_ChartType->addItem("Median Price", "Median");
+    m_ChartType->addItem("OHLC", "OHLC");
+    m_ChartType->addItem("Typical Price", "TP");
+    m_ChartType->addItem("Weighted Close", "WC");
+    m_ChartType->setCurrentIndex(1);
+
+    m_PriceBand->addItem("None", "None");
+    m_PriceBand->addItem("Bollinger Band", "BB");
+    m_PriceBand->addItem("Donchain Channel", "DC");
+    m_PriceBand->addItem("Envelop (SMA 20 +/- 10%)", "Envelop");
+    m_PriceBand->setCurrentIndex(1);
+
+    m_AvgType1->addItem("None", "None");
+    m_AvgType1->addItem("Simple", "SMA");
+    m_AvgType1->addItem("Exponential", "EMA");
+    m_AvgType1->addItem("Triangular", "TMA");
+    m_AvgType1->addItem("Weighted", "WMA");
+    m_AvgType1->setCurrentIndex(1);
+
+    for (int i = 0; i < m_AvgType1->count(); ++i)
+        m_AvgType2->addItem(m_AvgType1->itemText(i), m_AvgType1->itemData(i));
+    m_AvgType2->setCurrentIndex(1);
+
+    m_Indicator1->addItem("None", "None");
+    m_Indicator1->addItem("Accumulation/Distribution", "AccDist");
+    m_Indicator1->addItem("Aroon Oscillator", "AroonOsc");
+    m_Indicator1->addItem("Aroon Up/Down", "Aroon");
+    m_Indicator1->addItem("Avg Directional Index", "ADX");
+    m_Indicator1->addItem("Avg True Range", "ATR");
+    m_Indicator1->addItem("Bollinger Band Width", "BBW");
+    m_Indicator1->addItem("Chaikin Money Flow", "CMF");
+    m_Indicator1->addItem("Chaikin Oscillator", "COscillator");
+    m_Indicator1->addItem("Chaikin Volatility", "CVolatility");
+    m_Indicator1->addItem("Close Location Value", "CLV");
+    m_Indicator1->addItem("Commodity Channel Index", "CCI");
+    m_Indicator1->addItem("Detrended Price Osc", "DPO");
+    m_Indicator1->addItem("Donchian Channel Width", "DCW");
+    m_Indicator1->addItem("Ease of Movement", "EMV");
+    m_Indicator1->addItem("Fast Stochastic", "FStoch");
+    m_Indicator1->addItem("MACD", "MACD");
+    m_Indicator1->addItem("Mass Index", "MDX");
+    m_Indicator1->addItem("Momentum", "Momentum");
+    m_Indicator1->addItem("Money Flow Index", "MFI");
+    m_Indicator1->addItem("Neg Volume Index", "NVI");
+    m_Indicator1->addItem("On Balance Volume", "OBV");
+    m_Indicator1->addItem("Performance", "Performance");
+    m_Indicator1->addItem("% Price Oscillator", "PPO");
+    m_Indicator1->addItem("% Volume Oscillator", "PVO");
+    m_Indicator1->addItem("Pos Volume Index", "PVI");
+    m_Indicator1->addItem("Price Volume Trend", "PVT");
+    m_Indicator1->addItem("Rate of Change", "ROC");
+    m_Indicator1->addItem("RSI", "RSI");
+    m_Indicator1->addItem("Slow Stochastic", "SStoch");
+    m_Indicator1->addItem("StochRSI", "StochRSI");
+    m_Indicator1->addItem("TRIX", "TRIX");
+    m_Indicator1->addItem("Ultimate Oscillator", "UO");
+    m_Indicator1->addItem("Volume", "Vol");
+    m_Indicator1->addItem("William's %R", "WilliamR");
+
+    for (int i = 0; i < m_Indicator1->count(); ++i)
+    {
+        m_Indicator2->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
+        m_Indicator3->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
+        m_Indicator4->addItem(m_Indicator1->itemText(i), m_Indicator1->itemData(i));
+    }
+
+    m_Indicator1->setCurrentIndex(m_Indicator1->findData("RSI"));
+    m_Indicator2->setCurrentIndex(m_Indicator2->findData("MACD"));
+    m_Indicator3->setCurrentIndex(0);
+    m_Indicator4->setCurrentIndex(0);
+
+    // Use the same action hanlder for all controls
+
+    const QObjectList &allControls = leftPanel->children();
+    for (int i = 0; i < allControls.count(); ++i)
+    {
+        QObject *obj;
+        if ((obj = qobject_cast<QComboBox *>(allControls[i])) != 0)
+            connect(obj, SIGNAL(currentIndexChanged(int)), SLOT(onComboBoxChanged(int)));
+        else if ((obj = qobject_cast<QCheckBox *>(allControls[i])) != 0)
+            connect(obj, SIGNAL(clicked()), SLOT(onCheckBoxChanged()));
+        else if ((obj = qobject_cast<QLineEdit *>(allControls[i])) != 0)
+            connect(obj, SIGNAL(editingFinished()), SLOT(onLineEditChanged()));
+    }
+
+    // Update the chart
+    drawChart(m_ChartViewer);
+    
+    
+
+    
 }
 
 
@@ -131,14 +383,20 @@ void Analysis::drawChart(QChartViewer *viewer)
     int noOfPoints = endIndex - startIndex + 1;
     
     
-    char symbol[100] = "/home/navpreet/major_project/Yahoo/A.csv" ;
-    read_data(symbol);   
+    char symbol[150];
+    sprintf(symbol,"/home/navpreet/major_project/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    cout<<"symbol"<<symbol << "\n";
+     read_data(symbol);
+     
     
     // Create a FinanceChart object of width 720 pixels
-    FinanceChart *c = new FinanceChart(925);
+    FinanceChart *c = new FinanceChart(610);
     
     // Add a title to the chart
-    c->addTitle(Chart::TopCenter, m_TickerSymbol->text().toLocal8Bit().data());
+    if(data_len <= 0)
+    	c->addTitle("INVALID SYMBOL");    
+    else
+    	c->addTitle(Chart::TopCenter, m_TickerSymbol->text().toLocal8Bit().data());
 
     // Disable default legend box, as we are using dynamic legend
     c->setLegendStyle("normal", 8, Chart::Transparent, Chart::Transparent);
@@ -147,13 +405,15 @@ void Analysis::drawChart(QChartViewer *viewer)
     c->setData(DoubleArray(date + startIndex, noOfPoints), DoubleArray(high + startIndex, noOfPoints), DoubleArray(low + startIndex, noOfPoints), DoubleArray(open + startIndex, noOfPoints), DoubleArray(close + startIndex, noOfPoints), DoubleArray(volume + startIndex, noOfPoints), 30);
 
     // Add the main chart with 240 pixels in height
-    c->addMainChart(400);
+    c->addMainChart(280);
 
     // Add a 10 period simple moving average to the main chart, using brown color
-    c->addSimpleMovingAvg(10, 0x663300);
+    int a = m_MovingAvg1->text().toInt();
+    c->addSimpleMovingAvg(a, 0x663300);
 
     // Add a 20 period simple moving average to the main chart, using purple color
-    c->addSimpleMovingAvg(20, 0x9900ff);
+    int b = m_MovingAvg2->text().toInt();
+    c->addSimpleMovingAvg(b, 0x9900ff);
 
     // Add candlestick symbols to the main chart, using green/red for up/down days
     c->addCandleStick(0x00ff00, 0xff0000);
@@ -177,7 +437,7 @@ void Analysis::drawChart(QChartViewer *viewer)
 
     // Include track line with legend for the latest data values
     analysis(c, ((XYChart *)c->getChart(0))->getPlotArea()->getRightX());
-    cout << "track875: " << ((XYChart *)c->getChart(0))->getPlotArea()->getRightX();
+    //cout << "track875: " << ((XYChart *)c->getChart(0))->getPlotArea()->getRightX();
     
     
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -190,6 +450,15 @@ void Analysis::drawChart(QChartViewer *viewer)
 
 
 void Analysis::onLineEditChanged()
+{
+    char symbol[150];
+    sprintf(symbol,"/home/navpreet/major_project/Yahoo/%s.csv", m_TickerSymbol->text().toLocal8Bit().data());
+    cout<<"symbol"<<symbol << "\n";
+    read_data(symbol);
+    drawChart(m_ChartViewer);
+}
+
+void Analysis::onLineEditMAChanged()
 {
     drawChart(m_ChartViewer);
 }
@@ -219,7 +488,7 @@ void Analysis::initChartViewer(QChartViewer *viewer)
 
 void Analysis::onViewPortChanged()
 {
-    updateControls(m_ChartViewer);
+	updateControls(m_ChartViewer);
     
     if (m_ChartViewer->needUpdateChart())
         drawChart(m_ChartViewer);
@@ -343,7 +612,7 @@ void Analysis::onMouseMovePlotArea(QMouseEvent *)
 //
 void Analysis::analysis(MultiChart *m, int mouseX)
 {
-    cout << "mouseX" << mouseX << "\n";
+    //cout << "mouseX" << mouseX << "\n";
     // Clear the current dynamic layer and get the DrawArea object to draw on it.
     DrawArea *d = m->initDynamicLayer();
 
@@ -353,9 +622,9 @@ void Analysis::analysis(MultiChart *m, int mouseX)
 	//cout << "Chart count: " << m->getChartCount() << "\n" ;
     // Get the data x-value that is nearest to the mouse
     int xValue = (int)(((XYChart *)m->getChart(0))->getNearestXValue(mouseX));//layer
-    cout << "(XYChart *)m->getChart(0): " << (XYChart *)m->getChart(0) << "\n";
-    cout << "xValue: " << xValue << "\n";
-	cout << "xValue: " << xValue << "\n";
+    //cout << "(XYChart *)m->getChart(0): " << (XYChart *)m->getChart(0) << "\n";
+    //cout << "xValue: " << xValue << "\n";
+	//cout << "xValue: " << xValue << "\n";
     // Iterate the XY charts (main price chart and indicator charts) in the FinanceChart
     XYChart *c = 0;
     for(int i = 0; i < m->getChartCount(); ++i) 
@@ -557,6 +826,7 @@ void Analysis :: read_data(char *symbol)
 	i = 0;
 	while ( getline(file, value, ',') )
 	{
+		
 		sscanf(value.c_str(),"%4d-%2d-%2d",&tm1.tm_year,&tm1.tm_mon,&tm1.tm_mday);
 		//cout << "date: " <<tm1.tm_year << "-" << tm1.tm_mon << "-" << tm1.tm_mday <<"\n";
 		date[i] = Chart::chartTime(tm1.tm_year , tm1.tm_mon, tm1.tm_mday);
@@ -587,7 +857,7 @@ void Analysis :: read_data(char *symbol)
 		
 		i++;	
 	}	
-	data_len = i - 1;
+	data_len = i - 1 ;
 	
 	for(i=0; i < data_len/2; i++)
 	{
@@ -621,5 +891,5 @@ void Analysis :: read_data(char *symbol)
 		volume[i] = volume[data_len - i];
 		volume[data_len - i] = d_temp;		
 	}	
-	//data_len = 130;	
+	cout<<"data len" << data_len << "\n";	
 }
